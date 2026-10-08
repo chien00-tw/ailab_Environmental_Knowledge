@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>環境知識與節能減碳題庫 v1.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- QR Code 生成套件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap');
+        
+        :root {
+            --primary-green: #22c55e;
+            --primary-dark: #16a34a;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#bbf7d0 2px, transparent 2px);
+            background-size: 30px 30px;
+            /* 防止 iPad 上的橡皮筋滾動效果過度干擾 */
+            overscroll-behavior-y: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 針對 iPad 觸控優化的按鈕點擊回饋 */
+        .touch-active:active {
+            transform: scale(0.98);
+        }
+
+        /* 自訂捲軸隱藏 (針對 iPad 觀感) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* 選項按鈕未點擊前的懸停與預設樣式 */
+        .option-btn-default {
+            border-color: #e2e8f0;
+            background-color: #ffffff;
+            color: #334155;
+        }
+        @media (hover: hover) {
+            .option-btn:not(:disabled):hover {
+                border-color: var(--primary-green);
+                background-color: #f0fdf4;
+                transform: translateX(8px);
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-gray-900 select-none">
+
+    <div class="fixed top-3 right-4 z-50 flex gap-3">
+        <button onclick="app.showQRModal()" class="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border-2 border-green-200 flex items-center justify-center text-green-700 hover:bg-green-50 transition-colors touch-active" title="顯示 QR Code (分享連結)">
+            <i class="fa-solid fa-qrcode text-2xl"></i>
+        </button>
+        <button onclick="app.toggleFullscreen()" class="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border-2 border-blue-200 flex items-center justify-center text-blue-700 hover:bg-blue-50 transition-colors touch-active" title="全螢幕模式切換">
+            <i class="fa-solid fa-expand text-2xl" id="fullscreen-icon"></i>
+        </button>
+    </div>
+
+    <!-- QR Code 彈出視窗 -->
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full flex flex-col items-center shadow-2xl relative">
+            <button onclick="app.hideQRModal()" class="absolute top-4 right-4 w-10 h-10 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 flex items-center justify-center text-xl touch-active">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 class="text-2xl font-bold mb-6 text-gray-800"><i class="fa-solid fa-mobile-screen mr-2"></i>掃描開啟本網頁</h3>
+            <div id="qrcode-container" class="bg-white p-4 rounded-xl border-4 border-gray-100 shadow-inner mb-6"></div>
+            <button id="copy-url-btn" onclick="app.copyUrl()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-md transition-colors touch-active flex items-center justify-center gap-2">
+                <i class="fa-solid fa-link"></i> <span>一鍵複製網址</span>
+            </button>
+        </div>
+    </div>
+
+    <header class="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white shadow-xl relative z-10">
+        <div class="max-w-5xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-center md:justify-between items-center gap-4">
+            <h1 class="text-3xl md:text-4xl font-black flex items-center gap-3 tracking-wide drop-shadow-md">
+                <i class="fa-solid fa-leaf text-green-200"></i> 
+                環境知識與節能減碳題庫
+                <span class="text-lg md:text-xl font-bold bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/30">v1.1</span>
+            </h1>
+        </div>
+    </header>
+
+    <main class="flex-grow flex items-center justify-center p-4 md:p-8 relative z-10">
+        <div class="max-w-4xl w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden min-h-[600px] flex flex-col border-4 border-white">
+            
+            <div id="menu-screen" class="p-6 md:p-10 flex-grow flex flex-col items-center justify-center fade-in">
+                
+                <div class="mb-10 w-full max-w-lg bg-blue-50/50 p-6 rounded-3xl border-2 border-blue-100 shadow-inner">
+                    <label class="block text-blue-800 text-xl font-bold mb-3 text-center">
+                        <i class="fa-solid fa-user-graduate mr-2"></i>請輸入您的資料
+                    </label>
+                    <input type="text" id="student-info" value="五年一班28號野比大雄" class="w-full bg-white border-4 border-blue-200 text-center text-3xl font-black text-gray-800 py-4 px-6 rounded-2xl focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all shadow-sm">
+                </div>
+
+                <div class="text-center mb-10">
+                    <i class="fa-solid fa-earth-asia text-7xl text-green-500 mb-4 drop-shadow-lg"></i>
+                    <p class="text-xl text-gray-600 font-medium">每關 15 題，答對 <span class="text-red-500 font-bold text-2xl px-1">10</span> 題以上解鎖下一關！</p>
+                </div>
+
+                <div id="level-buttons-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+                    <!-- 動態生成難度按鈕 -->
+                </div>
+            </div>
+
+            <div id="quiz-screen" class="hidden flex-col h-full fade-in bg-gray-50/30">
+                <!-- 頂部進度與計分板 -->
+                <div class="bg-white p-5 md:p-6 border-b-2 border-gray-100 flex justify-between items-center shadow-sm">
+                    <div class="font-black text-2xl text-green-700 bg-green-100 px-4 py-2 rounded-xl" id="quiz-level-label">初級</div>
+                    <div class="text-gray-500 font-bold text-xl">
+                        進度：<span id="current-q-num" class="text-gray-800 text-3xl">1</span> / 15
+                    </div>
+                    <div class="text-gray-500 font-bold text-xl">
+                        得分：<span id="current-score" class="text-red-500 text-3xl px-2 bg-red-50 rounded-xl">0</span>
+                    </div>
+                </div>
+                
+                <!-- 進度條 -->
+                <div class="w-full bg-gray-200 h-3">
+                    <div id="progress-bar" class="bg-gradient-to-r from-green-400 to-green-500 h-3 transition-all duration-500 w-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                </div>
+
+                <div class="p-6 md:p-10 flex-grow flex flex-col overflow-y-auto">
+                    <!-- 題目區塊 -->
+                    <div class="mb-8 bg-white p-6 md:p-8 rounded-3xl shadow-sm border-2 border-green-100">
+                        <h3 id="question-text" class="text-2xl md:text-3xl font-black text-gray-800 leading-snug tracking-wide">
+                            題目載入中...
+                        </h3>
+                    </div>
+
+                    <!-- 選項區塊 (放大觸控區域) -->
+                    <div id="options-container" class="flex flex-col gap-4 mb-8">
+                        <!-- 選項按鈕將在此生成 -->
+                    </div>
+
+                    <!-- 完整解析區塊 -->
+                    <div id="explanation-box" class="hidden mt-4 bg-amber-50 border-l-8 border-amber-400 p-6 rounded-r-2xl fade-in shadow-md">
+                        <h4 class="font-black text-amber-800 text-xl flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-lightbulb text-amber-500 text-2xl"></i> 完整解析
+                        </h4>
+                        <p id="explanation-text" class="text-gray-800 text-xl font-medium leading-relaxed"></p>
+                    </div>
+
+                    <!-- 下一步按鈕 -->
+                    <div class="mt-8 flex justify-center md:justify-end hidden pb-4" id="action-container">
+                        <button onclick="app.nextQuestion()" class="w-full md:w-auto bg-gray-800 hover:bg-black text-white font-black text-2xl py-5 px-12 rounded-2xl shadow-xl transition-transform touch-active flex items-center justify-center gap-3">
+                            <span id="action-btn-text">下一題</span> <i class="fa-solid fa-circle-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="result-screen" class="hidden p-8 md:p-12 flex-grow flex flex-col items-center justify-center fade-in text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                
+                <div id="result-icon" class="text-8xl mb-6 z-10 drop-shadow-2xl"></div>
+                <h2 id="result-title" class="text-4xl md:text-5xl font-black text-gray-800 mb-4 z-10">結算成績</h2>
+                
+                <div class="bg-white p-8 rounded-3xl shadow-xl border-4 border-gray-100 mb-8 w-full max-w-sm z-10 relative">
+                    <p class="text-gray-500 font-bold text-xl mb-2">最終得分</p>
+                    <div class="text-7xl font-black text-green-600" id="final-score-display">15 / 15</div>
+                </div>
+                
+                <div id="reward-box" class="hidden bg-gradient-to-br from-yellow-100 to-amber-200 border-4 border-yellow-400 p-6 rounded-3xl mb-10 transform hover:scale-105 transition-transform z-10 shadow-lg w-full max-w-sm">
+                    <p class="text-lg text-yellow-800 mb-2 font-bold"><i class="fa-solid fa-crown mr-2"></i>獲得稱號</p>
+                    <p id="reward-title" class="text-4xl font-black text-amber-700 drop-shadow-sm tracking-widest">環境知識王</p>
+                </div>
+
+                <p id="result-message" class="text-2xl text-gray-700 font-bold mb-10 max-w-lg leading-relaxed z-10"></p>
+                
+                <button onclick="app.returnToMenu()" class="w-full max-w-sm bg-green-600 hover:bg-green-700 text-white font-black text-2xl py-5 px-8 rounded-2xl shadow-xl transition-all touch-active z-10 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-house"></i> 回到主選單
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white/90 backdrop-blur-md text-gray-600 text-center py-5 text-lg font-bold relative z-10 border-t border-green-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        環境知識王 | 互動學習系統 | Design：S.C. Kuo
+    </footer>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <script>
+        // 考量到附件題庫數量龐大，此處精選並完整轉換符合格式的題目，確保每個等級至少有 15 題供洗牌
+        const QUESTIONS_DB = {
+            beginner: [
+                { q: "下列哪種設計更容易使炎熱的臺灣溫度升高？", options: ["加裝遮陽板", "在屋頂加裝通風塔", "室外有走廊設計", "加裝玻璃帷幕"], ans: 3, exp: "加裝遮陽板、在屋頂加裝通風塔及室外有走廊設計都是讓室內較為通風、散熱的設計。加裝玻璃帷幕易產生溫室效應。" },
+                { q: "《京都協議書》主要共識是什麼？", options: ["全面管制塑化劑的使用", "全面管制多氯聯苯", "環境荷爾蒙物質的管制", "管制二氧化碳的排放"], ans: 3, exp: "《京都協議書》主要共識是管制二氧化碳等溫室氣體的排放。" },
+                { q: "「可回收、低污染、省資源」的產品符合下列哪項標章概念？", options: ["節能標章", "回收標章", "環保標章", "以上皆是"], ans: 2, exp: "行政院環保署設計的「環保標章」，象徵「可回收、低污染、省資源」的綠色消費觀念。" },
+                { q: "「綠色生活」的『綠色』概念可以下列何者為之？", options: ["省能源", "低污染", "低毒性", "以上皆是"], ans: 3, exp: "舉凡對環境友善(如：省能源、省資源、低污染、低毒性)的事項，均可稱為『綠色』。" },
+                { q: "人類對於核能的應用，應該要有什麼樣的態度？", options: ["不斷興建核能發電廠", "致力研發核子武器", "適度使用並注意可能帶來的災害", "在深海處大量試爆核武"], ans: 2, exp: "核能雖然是低碳能源，但伴隨輻射風險與核廢料問題，應適度使用並極度注意安全防護。" },
+                { q: "下列有關能源敘述何者正確？", options: ["化石燃料為可再生能源", "核燃料為不可再生能源", "太陽能為不可再生能源", "地熱為不可再生能源"], ans: 1, exp: "核燃料（如鈾礦）是存在地球上的有限礦物，消耗後無法再生，屬於不可再生能源。" },
+                { q: "下列何者「不是」水力發電的優點？", options: ["不會造成空氣污染", "建築水壩成本低", "發電效率高", "水源可以重複使用"], ans: 1, exp: "水力發電雖然無空氣汙染，但建築水壩的費用相當高，且會破壞河川生態與改變水文。" },
+                { q: "下列何者為國際間對於溫室效應主要管制的氣體？", options: ["一氧化碳", "氨氣", "一氧化氮", "甲烷"], ans: 3, exp: "溫室氣體包含二氧化碳、甲烷、氧化亞氮、氟氣碳化物等。甲烷的溫室效應能力比二氧化碳強很多。" },
+                { q: "下列何者「無法」達到節能減碳的目的？", options: ["隨手關燈", "用大量的水洗澡", "出門走路、騎腳踏車", "多吃蔬食少吃肉"], ans: 1, exp: "處理自來水與加熱熱水都需要消耗大量能源（電力與瓦斯），因此用大量水洗澡會增加碳排放。" },
+                { q: "下列何者是可以落實低碳旅遊的方式？", options: ["使用旅館提供的免洗用具", "自己開車去旅遊", "搭大眾運輸工具旅遊", "舉辦大型營火晚會"], ans: 2, exp: "低碳旅遊指旅遊過程中以溫室氣體排放量最小的方式進行，如搭乘公車或火車等大眾交通工具。" },
+                { q: "下列何者「不會」減少溫室氣體的排放？", options: ["減少使用煤、石油", "大量植樹造林", "增高燃煤煙囪的高度", "開發太陽能等新能源"], ans: 2, exp: "增高煙囪只能讓汙染物擴散得更遠，並不能減少溫室氣體或汙染物的整體排放總量。" },
+                { q: "下列何者對溫室效應的描述是正確的？", options: ["造成地球臭氧層破洞", "沒有溫室效應，地球會冷得無法居住", "會讓空氣中產生很多灰塵", "會造成雨水變酸"], ans: 1, exp: "溫室效應本身是自然現象，適度的溫室效應能維持地表溫暖，但人類活動排放過多溫室氣體導致「溫室效應加劇」才是危機。" },
+                { q: "下列何者屬於可以回收的電池？", options: ["碳鋅電池", "鎳鎘電池", "鋰電池", "以上皆是"], ans: 3, exp: "不論是一次性電池(碳鋅、鹼錳)或二次充電電池(鎳鎘、鋰電池)含有重金屬，都必須回收處理。" },
+                { q: "下列哪個選項「不是」節能減碳的正確作法？", options: ["隨手拔插頭", "使用節能標章產品", "多搭乘電梯節省時間", "做好資源回收"], ans: 2, exp: "電梯是非常耗電的設備，多走樓梯不僅能節省能源減少碳排，還能鍛鍊身體。" },
+                { q: "住家屋頂種植植物有什麼好處？", options: ["增加室內溫度", "降低室溫，減少冷氣耗電", "增加蚊蟲數量", "容易導致屋頂漏水"], ans: 1, exp: "綠化屋頂可吸收熱能、改善熱島效應，約可降低頂層溫度，減少冷氣耗電量20%。" },
+                { q: "以下何者常利用太陽能來運作？", options: ["熱水器", "戶外路燈", "小型計算機", "以上皆是"], ans: 3, exp: "太陽能運用廣泛，太陽能熱水器收集熱能，太陽能路燈與計算機則是利用太陽能板轉換為電能。" },
+                { q: "一般而言，水中「飽和溶氧」值隨水溫之上升而呈下列何種趨勢？", options: ["減少", "增加", "不變", "波動"], ans: 0, exp: "氣體在水中的溶解度與溫度成反比。水溫升高，水中的飽和溶氧量會隨之減少，可能導致魚類缺氧死亡。" }
+            ],
+            intermediate: [
+                { q: "自溫室效應被發現提出警訊至今，研擬的減緩策略「不包括」下列哪一項？", options: ["節約能源、提高效率", "大量發展火力發電", "開發新興與再生能源", "發展碳捕捉與減量技術"], ans: 1, exp: "火力發電是碳排放的最大來源之一，減緩策略應是減少依賴火力發電，轉向綠色再生能源。" },
+                { q: "《京都議定書》中規範下列何種溫室氣體？", options: ["二氧化碳(CO2)", "氧氣(O2)", "一氧化碳(CO)", "臭氧(O3)"], ans: 0, exp: "《京都議定書》重點管制 CO2、CH4、N2O、HFCs、PFCs、SF6 等六種造成溫室效應的氣體減量。" },
+                { q: "《蒙特婁議定書》是為保護臭氧層，下列何者「不是」其管制的項目？", options: ["二氧化碳", "四氯化碳", "氟氯碳化合物(CFCs)", "溴甲烷"], ans: 0, exp: "《蒙特婁議定書》主要管制破壞臭氧層的物質(如氟氯碳化物CFCs)。二氧化碳是溫室氣體，由《京都議定書》管制。" },
+                { q: "「這種氣體雖然吸收長波輻射能量能力最低，但占溫室氣體總量大部分，對溫室效應影響最大。」指的是？", options: ["甲烷", "二氧化碳", "全氟化碳", "六氟化硫"], ans: 1, exp: "二氧化碳的增溫潛力(GWP)雖定義為1(最低)，但因人類燃燒化石燃料排放量極大，成為全球暖化的最主要推手。" },
+                { q: "「潮汐發電」的發電原理是什麼？", options: ["利用海水的溫差", "利用海流的流動", "利用每天漲退潮的水位差", "利用波浪的起伏"], ans: 2, exp: "潮汐發電是利用漲潮與退潮間的水位高低落差，水的重力位能推動水輪發電機發電。" },
+                { q: "5R為垃圾減量的五項原則，下列何者正確？", options: ["Refuse：拒絕使用無環保觀念產品", "Repair: 購買新產品取代舊產品", "Recycle: 焚燒垃圾", "Reduce: 增加包裝"], ans: 0, exp: "5R包含：Reduce(減量)、Reuse(重複使用)、Repair(維修)、Refuse(拒絕不環保產品)、Recycle(回收)。" },
+                { q: "下列何者是開車省油的好方法？", options: ["冬天常注意是否因天冷而胎壓不足", "天氣熱時，引擎怠速吹冷氣", "頻頻開快車與急剎車", "放置大量雜物在車上"], ans: 0, exp: "胎壓不足會增加輪胎滾動阻力，嚴重影響燃油效率。怠速、急煞車、車體過重都會增加耗油量。" },
+                { q: "下列何者是溫室氣體二氧化碳最主要的來源？", options: ["化石燃料的燃燒", "家畜腸胃發酵", "農業化肥", "植物光合作用"], ans: 0, exp: "二氧化碳主要來自於人類大量燃燒石油、天然氣和煤炭等化石燃料，用於發電、工業及交通運輸。" },
+                { q: "下列何者對於「綠建築」的說明是正確的？", options: ["主要使用綠色油漆粉刷", "建築周圍加裝大量水霧降溫", "消耗最少地球資源，製造最少廢棄物", "增加室內照明亮度以利閱讀"], ans: 2, exp: "綠建築強調「生態、節能、減廢、健康」，在建築生命週期中消耗最少資源，與自然環境共生共利。" },
+                { q: "下列何種發電方式主要會大量增加二氧化碳的產生？", options: ["風力發電", "太陽能發電", "火力發電", "水力發電"], ans: 2, exp: "火力發電需燃燒煤、油、氣等化石燃料，過程中會釋放大量二氧化碳及空氣汙染物。" },
+                { q: "日常耗能以空調與照明佔最大比例。一般而言，哪一種燈具最耗電？", options: ["鎢絲燈泡(白熾燈)", "日光燈", "LED燈", "省電燈泡"], ans: 0, exp: "鎢絲燈泡有將近90%的電能轉換為熱能浪費掉，發光效率極低，目前已被多國逐步淘汰禁用。" },
+                { q: "地球上大部分生態系所需要的能量，最終來源是由下列何者所供應？", options: ["地熱", "石油", "太陽", "綠色植物"], ans: 2, exp: "太陽能是地球生態系的能量根本。綠色植物吸收太陽能進行光合作用轉換為化學能，再透過食物鏈傳遞。" },
+                { q: "下列哪一種行為最能有效在源頭減少溫室氣體排放？", options: ["挖掘更多的化石能源", "提高能源使用效率", "購買碳權", "研發碳捕捉技術"], ans: 1, exp: "提高能源使用效率(節能)能直接減少能源需求與燃料燃燒，是最根本且最具成本效益的源頭減碳方式。" },
+                { q: "北歐國家課徵碳稅的項目中，通常「不包括」下列哪一項能源？", options: ["天然氣", "水力發電", "煤炭", "油品"], ans: 1, exp: "碳稅是依據燃料的「含碳量」課徵，水力發電屬於無碳再生能源，因此不會被課徵碳稅。" },
+                { q: "我們常聽到的節能「減碳」，此處的「碳」具體指的是什麼氣體？", options: ["一氧化碳", "二氧化碳", "碳氫化合物", "甲烷"], ans: 1, exp: "節能減碳的「碳」主要指二氧化碳(CO2)，因為它是人類活動排放量最大、對全球暖化貢獻度最高的溫室氣體。" }
+            ],
+            upperIntermediate: [
+                { q: "「某溫室氣體多屬天然排放，湖泊、濕地底部的厭氧腐解作用會大量產生。」此氣體為？", options: ["二氧化碳", "甲烷", "氧化亞氮", "氫氟碳化物"], ans: 1, exp: "甲烷(CH4)多由有機物質在無氧狀態下分解產生，如濕地、水稻田底泥，以及反芻動物（如牛羊）的腸胃發酵。" },
+                { q: "下列何者為「無碳」能源的精確定義？", options: ["僅產生少量二氧化碳的化石燃料", "發電過程中沒有碳原子參與排放的能源", "利用植物吸收二氧化碳發電", "生質柴油"], ans: 1, exp: "無碳能源（如太陽能、風力、水力）在轉換為電能的物理過程中，完全沒有碳原子的參與及燃燒，不排放二氧化碳。" },
+                { q: "由廢食用油、大豆等農作物提煉的「生質柴油」，具有下列哪一項特徵？", options: ["燃燒時完全不排放二氧化碳", "具生物可分解性，且毒性極低", "會造成引擎積碳而提高油耗", "完全無空氣汙染"], ans: 1, exp: "生質柴油燃燒仍有CO2排放(但視為碳中和)，其最大優點是毒性低、可被自然微生物分解，對環境友善度高於石化柴油。" },
+                { q: "我國「永續能源政策綱領」原宣告溫室氣體減量目標：全國二氧化碳排放減量，於哪一年要回到2005年排放量？", options: ["2015年", "2020年", "2025年", "2030年"], ans: 1, exp: "政府早年制定的減量目標為2020年回到2005年排放量，現今更進一步推動「2050淨零排放」目標。" },
+                { q: "冷氣機的「能源效率比值」，一般簡稱為什麼？", options: ["EF", "EA", "EER", "EIA"], ans: 2, exp: "EER (Energy Efficiency Ratio) = 冷房能力/消耗電力。EER值愈高，代表冷氣愈省電。現今也常用CSPF來評估。" },
+                { q: "使用「生質能源」能被視為降低二氧化碳排放(碳中和)，其核心原因為何？", options: ["生質燃料燃燒時不產生二氧化碳", "生質燃料熱值極高，使用量很少", "其排放的CO2是現代植物生長時剛從大氣中吸收固定的", "生質能燃燒產生的是氧氣"], ans: 2, exp: "生質能燃燒釋放的碳，是植物生長期間經光合作用吸收大氣中的碳，形成碳的自然循環，不會額外增加大氣碳總量。" },
+                { q: "若全球大量種植能源作物取代化石燃料，可能產生的負面問題是什麼？", options: ["溫室效應會完全消失", "增加森林面積", "排擠糧食作物種植面積，導致糧價上漲", "對自然生態無任何影響"], ans: 2, exp: "大量種植能源作物（如玉米製酒精）會佔用原本種植糧食的農地，引發「與民爭糧」的問題，導致全球糧價波動與生態單一化。" },
+                { q: "中國大陸北方燃燒煤炭產生的汙染物，隨東北季風飄到臺灣，最容易造成下列哪種環境問題？", options: ["熱島效應", "海水異常升溫", "酸雨", "地層下陷"], ans: 2, exp: "燃煤產生的硫氧化物(SOx)與氮氧化物(NOx)隨季風南下，溶於雨水中形成硫酸與硝酸，造成臺灣冬季容易降下酸雨。" },
+                { q: "下列哪一種購買與飲食方式最符合「低碳生活」的原則？", options: ["購買昂貴的進口舶來品", "選購本地生產、當季的食材", "天天吃進口頂級牛肉", "購買過度包裝的名牌商品"], ans: 1, exp: "選擇「在地當季」食材，可大幅減少飛機、冷藏輪船等長途交通運輸所消耗的「食物里程」碳排放，落實低碳生活。" },
+                { q: "京都議定書對我國帶來什麼影響？", options: ["促使我國對節能減碳及溫室氣體管制的重視", "促使我國重視海洋塑膠汙染", "促使我國重視核能輻射", "促使我國實施垃圾分類"], ans: 0, exp: "我國雖非聯合國會員國無法簽署，但身為地球村一份子，受國際貿易與環保趨勢影響，亦積極推行溫室氣體盤查與減碳政策。" },
+                { q: "關於天然氣的描述，下列哪個選項是「錯誤」的？", options: ["燃燒較煤炭乾淨", "主要成分為甲烷", "屬於可再生能源", "透過管線或液化船運輸"], ans: 2, exp: "天然氣屬於化石燃料的一種，形成需要漫長的地質時間，因此是「不可再生能源」。" },
+                { q: "關於太陽能發電的敘述，下列哪個選項是正確的？", options: ["目前已是地球最主要的電力來源", "必須將太陽熱能轉換成機械能才能發電", "太陽能電池是利用光能直接產生電流", "太陽能完全不受天氣影響"], ans: 2, exp: "太陽能光電板(太陽能電池)是利用「光電效應」，直接將太陽的光能轉換為直流電能，不須經過熱能轉換。" },
+                { q: "何謂「碳足跡」(Carbon Footprint)？", options: ["走路時留下的黑色腳印", "產品從原料、製造、運輸到廢棄整個生命週期的二氧化碳排放總量", "工廠煙囪的直徑大小", "人類每天呼出的二氧化碳量"], ans: 1, exp: "碳足跡評估一項產品或服務在其「生命週期」中，直接與間接產生的溫室氣體排放總量，幫助消費者選擇低碳商品。" },
+                { q: "購買日光燈或省電燈泡時，應選擇哪一種「安定器」較為省電且不閃爍？", options: ["傳統電磁式", "電子式", "機械式", "無安定器"], ans: 1, exp: "電子式安定器不僅發光效率較高(省電約20%)，且採用高頻點燈，光源不閃爍，能保護視力並延長燈管壽命。" },
+                { q: "聯合國氣候變遷專家小組(IPCC)不斷警告，為控制全球暖化，人類在2050年前必須如何因應？", options: ["維持現有碳排放量即可", "大幅減少溫室氣體排放，達成淨零排放(Net Zero)", "可以增加碳排放，只要多種樹", "搬離沿海地區"], ans: 1, exp: "IPCC 強調，要將全球升溫控制在1.5°C以內，全球必須在2050年左右達成「淨零排放」，這需要能源、產業與生活方式的全面轉型。" }
+            ],
+            advanced: [
+                { q: "由英國標準協會制定，作為宣告並保證「碳中和」承諾準確性的國際公認標準為何？", options: ["PAS 2060", "ISO 14001", "ISO 9001", "PAS 1060"], ans: 0, exp: "PAS 2060 是國際間認可的「碳中和」標準，規範企業如何宣告並驗證其產品、服務或組織已達成碳中和狀態。" },
+                { q: "臺灣專屬的「綠建築」評估系統縮寫為何？", options: ["LEED (美國)", "EEWH (臺灣)", "BREEAM (英國)", "CASBEE (日本)"], ans: 1, exp: "EEWH 為臺灣本土的綠建築評估系統，四大指標群代表 Ecology(生態)、Energy Saving(節能)、Waste Reduction(減廢)、Health(健康)。" },
+                { q: "綠建築的九大評估指標中，「不包含」下列何者？", options: ["綠化量指標", "基地保水指標", "室內裝潢奢華指標", "生物多樣性指標"], ans: 2, exp: "綠建築九大指標包含：生物多樣性、綠化量、基地保水、日常節能、二氧化碳減量、廢棄物減量、室內環境、水資源、污水垃圾改善。" },
+                { q: "下列哪一種溫室氣體，其單位體積吸收大氣熱能的能力(全球暖化潛勢 GWP)最強？", options: ["二氧化碳 (CO2)", "甲烷 (CH4)", "六氟化硫 (SF6)", "氧化亞氮 (N2O)"], ans: 2, exp: "以CO2的GWP為1作基準，甲烷約25，而六氟化硫(SF6)高達23,500左右，是極強的溫室氣體，常用於重電設備的絕緣氣體。" },
+                { q: "目前臺灣的總發電量中，以哪一種發電方式的佔比最高(長期超過六成)？", options: ["風力發電", "水力發電", "火力發電", "太陽能發電"], ans: 2, exp: "臺灣由於缺乏自產能源，高度仰賴進口化石燃料（燃煤、天然氣），火力發電長期佔總發電量的70%以上。" },
+                { q: "全球生質燃料(Biofuel)的產業發展中，目前被廣泛應用於交通運輸的主要是哪一類？", options: ["氣態燃料(沼氣)", "液態燃料(生質酒精與生質柴油)", "固態衍生燃料(RDF)", "液態煉解油"], ans: 1, exp: "為了替代汽柴油，全球主要發展液態的生質酒精(多摻入汽油)與生質柴油，可直接應用於現有的內燃機車輛。" },
+                { q: "依照「永續能源政策綱領」，我國規劃推動的「能源四法」中，旨在建立碳排放總量管制與交易機制的法案是？", options: ["能源管理法", "再生能源發展條例", "溫室氣體減量及管理法", "石油管理法"], ans: 2, exp: "《溫室氣體減量及管理法》(現已修正為氣候變遷因應法) 是我國應對氣候變遷、建立碳定價與減量法源的核心法律。" },
+                { q: "目前國內市場佔有率最高(約90%)的太陽能熱水器類型為？", options: ["儲置式太陽能熱水器", "真空管式太陽能熱水器", "面蓋式平板太陽能熱水器", "無面蓋式太陽能熱水器"], ans: 2, exp: "面蓋式平板太陽能熱水器因技術成熟、價格適中且堅固耐用，是臺灣一般家庭最普遍採用的類型。" },
+                { q: "原「健康綠建材標章」，為了更明確定義建材對室內空氣品質的影響，修訂名稱為？", options: ["低逸散健康綠建材標章", "環保無毒建材標章", "生態回收建材標章", "高機能再生建材標章"], ans: 0, exp: "為強調管制建材中甲醛(HCHO)與總揮發性有機化合物(TVOC)的逸散速率，確保室內空氣健康，故更名為「低逸散健康綠建材標章」。" },
+                { q: "植物透過光合作用吸收大氣中的二氧化碳，將其固定在植物體內與土壤當中的自然機制，稱為什麼？", options: ["碳中和", "碳匯 (Carbon Sink)", "碳足跡", "碳抵換"], ans: 1, exp: "碳匯(Carbon Sink)是指能夠累積及儲存碳化合物（特別是二氧化碳）的天然或人工「倉庫」，如森林、海洋和土壤。" },
+                { q: "為達到《氣候變化綱要公約》的減量目的，其法律架構約定了三種彈性減排機制，下列何者「不是」？", options: ["清潔發展機制(CDM)", "聯合履行(JI)", "排放交易(ET)", "強制關廠命令"], ans: 3, exp: "京都機制包含：排放交易(ET)、清潔發展機制(CDM, 已開發國家協助開發中國家減碳取得碳權)、聯合履行(JI)。" },
+                { q: "都市氣溫明顯高於周圍郊區的現象稱為「熱島效應」，下列何者「不是」造成熱島效應的主要原因？", options: ["大量空調排熱與汽機車廢氣", "柏油路與水泥建築蓄積太陽熱能", "高樓密集阻擋都市風廊通風", "市區廣泛鋪設透水磚與大量植樹"], ans: 3, exp: "鋪設透水磚、留設綠地與大量植樹是「減緩」熱島效應的解方，因為水份蒸發與植物蒸散能帶走環境熱量。" },
+                { q: "為因應氣候變遷，許多國家開始實施「碳定價」(Carbon Pricing)。碳定價主要包含哪兩種常見的制度？", options: ["碳稅/費 與 碳排放交易系統(ETS)", "增值稅 與 營業稅", "所得稅 與 財產稅", "關稅 與 貨物稅"], ans: 0, exp: "碳定價將碳排放的外部成本內部化。主要透過政府直接徵收的「碳稅/碳費」，以及市場機制的「碳排放交易系統(總量管制與交易)」來達成。" },
+                { q: "根據研究，建築相關產業約消耗全球多少比例的能源，是推動節能減碳的重鎮？", options: ["約 5%", "約 15%", "約 40%", "約 80%"], ans: 2, exp: "建築業(含建材生產、營造、建築物日常使用照明空調等)消耗了全球約40%的能源及資源，排放約36%的二氧化碳，減碳潛力巨大。" },
+                { q: "冰河消融線是指冰雪累積與融化的分界。近年來由於全球暖化，高山冰河的消融線發生了什麼變化？", options: ["位置大幅向下游(低海拔)推進", "位置大幅向上游(高海拔)退縮", "完全沒有改變", "冰河全面結凍"], ans: 1, exp: "氣溫升高導致冰雪融化速度大於累積速度，因此冰河前端不斷退縮，消融線向較冷的高海拔區域移動。" }
+            ]
+        };
+
+        const LEVEL_CONFIG = [
+            { id: 'beginner', name: "初級挑戰", theme: { color: 'green', hex: '#22c55e', text: 'text-green-700', bg: 'bg-green-50', border: 'border-green-400', icon: 'fa-seedling' } },
+            { id: 'intermediate', name: "中級挑戰", theme: { color: 'teal', hex: '#14b8a6', text: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-400', icon: 'fa-tree' } },
+            { id: 'upperIntermediate', name: "中高級挑戰", theme: { color: 'blue', hex: '#3b82f6', text: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-400', icon: 'fa-mountain-sun' } },
+            { id: 'advanced', name: "高級挑戰", theme: { color: 'indigo', hex: '#6366f1', text: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-400', icon: 'fa-earth-americas' } }
+        ];
+
+        let state = {
+            levelConfig: null,
+            questions: [],
+            currentIndex: 0,
+            score: 0,
+            answered: false,
+            unlockedLevels: ['beginner'] // 嚴格控制：預設僅解鎖初級
+        };
+
+        const app = {
+            init: () => {
+                app.setupCanvas();
+                app.renderMenuButtons();
+                
+                // 點擊 Modal 外部關閉 QR 視窗
+                document.getElementById('qr-modal').addEventListener('click', (e) => {
+                    if(e.target.id === 'qr-modal') app.hideQRModal();
+                });
+            },
+
+            // Canvas 滿天星辰特效設定
+            setupCanvas: () => {
+                const canvas = document.getElementById('confetti-canvas');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                window.addEventListener('resize', () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                });
+            },
+
+            // 頂部列功能：全螢幕切換
+            toggleFullscreen: () => {
+                const icon = document.getElementById('fullscreen-icon');
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.warn(`無法進入全螢幕: ${err.message}`);
+                    });
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                } else {
+                    document.exitFullscreen();
+                    icon.classList.remove('fa-compress');
+                    icon.classList.add('fa-expand');
+                }
+            },
+
+            // 頂部列功能：QR Code
+            showQRModal: () => {
+                const modal = document.getElementById('qr-modal');
+                const container = document.getElementById('qrcode-container');
+                const btnText = document.querySelector('#copy-url-btn span');
+                
+                modal.classList.remove('hidden');
+                container.innerHTML = ''; // Clear previous
+                btnText.innerText = '一鍵複製網址';
+                
+                // 產生目前網址的 QR Code，設定較大尺寸方便 iPad 掃描
+                new QRCode(container, {
+                    text: window.location.href,
+                    width: 220,
+                    height: 220,
+                    colorDark : "#16a34a",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            },
+
+            hideQRModal: () => {
+                document.getElementById('qr-modal').classList.add('hidden');
+            },
+
+            copyUrl: () => {
+                // 使用無 alert 提示法
+                const btn = document.getElementById('copy-url-btn');
+                const btnText = btn.querySelector('span');
+                const originalContent = btn.innerHTML;
+                
+                try {
+                    // Fallback for iFrame environments if clipboard API is blocked
+                    const tempInput = document.createElement("input");
+                    tempInput.value = window.location.href;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(tempInput);
+                    
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>網址已成功複製！</span>';
+                    btn.classList.replace('bg-blue-600', 'bg-green-600');
+                    btn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.classList.replace('bg-green-600', 'bg-blue-600');
+                        btn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700');
+                    }, 2000);
+                } catch (err) {
+                    btnText.innerText = '複製失敗，請手動複製網址列';
+                }
+            },
+
+            renderMenuButtons: () => {
+                const container = document.getElementById('level-buttons-container');
+                container.innerHTML = '';
+                
+                LEVEL_CONFIG.forEach((levelObj, index) => {
+                    const isUnlocked = state.unlockedLevels.includes(levelObj.id);
+                    const btn = document.createElement('button');
+                    
+                    if (isUnlocked) {
+                        btn.className = `py-8 px-6 bg-white border-4 rounded-[2rem] font-black text-3xl shadow-md hover:shadow-xl hover:scale-105 transition-all touch-active flex flex-col items-center gap-4 ${levelObj.theme.text} ${levelObj.theme.border} ${levelObj.theme.bg.replace('bg-', 'hover:bg-')}`;
+                        btn.innerHTML = `<i class="fa-solid ${levelObj.theme.icon} text-5xl mb-2"></i> ${levelObj.name}`;
+                        btn.onclick = () => app.startQuiz(levelObj);
+                    } else {
+                        // 上鎖狀態：灰底、鎖頭圖示
+                        btn.className = `py-8 px-6 bg-gray-100 border-4 border-gray-200 rounded-[2rem] text-gray-400 font-bold text-3xl shadow-sm transition-all flex flex-col items-center gap-4 opacity-70 cursor-not-allowed`;
+                        btn.innerHTML = `<i class="fa-solid fa-lock text-5xl mb-2 text-gray-300"></i> ${levelObj.name}`;
+                        btn.disabled = true;
+                    }
+                    
+                    container.appendChild(btn);
+                });
+            },
+
+            // Fisher-Yates 洗牌演算法 (僅打亂題目，不打亂原選項順序)
+            shuffle: (array) => {
+                let currentIndex = array.length, randomIndex;
+                while (currentIndex !== 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            },
+
+            startQuiz: (levelConfig) => {
+                state.levelConfig = levelConfig;
+                state.score = 0;
+                state.currentIndex = 0;
+                
+                // 複製題庫避免汙染原資料，洗牌後精確抽出 15 題
+                let pool = JSON.parse(JSON.stringify(QUESTIONS_DB[levelConfig.id]));
+                state.questions = app.shuffle(pool).slice(0, 15);
+
+                // 更新 UI 標籤
+                const levelLabel = document.getElementById('quiz-level-label');
+                levelLabel.innerText = levelConfig.name;
+                levelLabel.className = `font-black text-2xl px-4 py-2 rounded-xl ${levelConfig.theme.text} ${levelConfig.theme.bg}`;
+                
+                // 動態設定進度條顏色
+                document.getElementById('progress-bar').className = `h-3 transition-all duration-500 w-0 shadow-[0_0_10px_${levelConfig.theme.hex}80]`;
+                document.getElementById('progress-bar').style.backgroundColor = levelConfig.theme.hex;
+
+                app.switchScreen('menu-screen', 'quiz-screen');
+                app.renderQuestion();
+            },
+
+            renderQuestion: () => {
+                state.answered = false;
+                const qData = state.questions[state.currentIndex];
+                
+                // 更新計分與進度
+                document.getElementById('current-q-num').innerText = state.currentIndex + 1;
+                document.getElementById('current-score').innerText = state.score;
+                const progressPercent = ((state.currentIndex) / 15) * 100;
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+                // 渲染題目文字 (加大)
+                document.getElementById('question-text').innerText = `${state.currentIndex + 1}. ${qData.q}`;
+                
+                // 隱藏解析與下一步按鈕
+                const expBox = document.getElementById('explanation-box');
+                const actionBox = document.getElementById('action-container');
+                expBox.classList.add('hidden');
+                expBox.classList.remove('fade-in');
+                actionBox.classList.add('hidden');
+
+                // 渲染選項 (加大觸控區域與字體)
+                const optionsContainer = document.getElementById('options-container');
+                optionsContainer.innerHTML = '';
+                
+                const labels = ['A', 'B', 'C', 'D'];
+                qData.options.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = `option-btn option-btn-default w-full text-left p-6 md:p-8 rounded-[1.5rem] border-4 text-2xl font-bold transition-all focus:outline-none flex items-center gap-6 shadow-sm touch-active`;
+                    btn.innerHTML = `<span class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-500 font-black text-2xl shrink-0 shadow-inner">${labels[index]}</span> <span class="leading-snug">${opt}</span>`;
+                    btn.onclick = () => app.selectOption(index, btn);
+                    optionsContainer.appendChild(btn);
+                });
+            },
+
+            selectOption: (selectedIndex, clickedBtn) => {
+                if (state.answered) return;
+                state.answered = true;
+
+                const qData = state.questions[state.currentIndex];
+                const isCorrect = selectedIndex === qData.ans;
+                const buttons = document.querySelectorAll('.option-btn');
+
+                // 鎖定所有按鈕並給予明確顏色提示
+                buttons.forEach((btn, index) => {
+                    btn.disabled = true;
+                    btn.classList.remove('option-btn-default', 'hover:bg-f0fdf4');
+                    
+                    const badge = btn.querySelector('span:first-child');
+
+                    if (index === qData.ans) {
+                        // 正確答案標示為顯眼綠色
+                        btn.classList.add('border-green-500', 'bg-green-50', 'text-green-800', 'shadow-md', 'scale-[1.02]');
+                        badge.classList.add('bg-green-500', 'text-white');
+                        badge.classList.remove('bg-gray-100', 'text-gray-500');
+                        badge.innerHTML = '<i class="fa-solid fa-check text-3xl"></i>';
+                    } else if (index === selectedIndex && !isCorrect) {
+                        // 錯誤選擇標示為紅色
+                        btn.classList.add('border-red-500', 'bg-red-50', 'text-red-800');
+                        badge.classList.add('bg-red-500', 'text-white');
+                        badge.classList.remove('bg-gray-100', 'text-gray-500');
+                        badge.innerHTML = '<i class="fa-solid fa-xmark text-3xl"></i>';
+                    } else {
+                        // 未選擇的錯誤選項淡化
+                        btn.classList.add('opacity-40', 'border-gray-200', 'bg-gray-50');
+                    }
+                });
+
+                if (isCorrect) {
+                    state.score++;
+                    const scoreEl = document.getElementById('current-score');
+                    scoreEl.innerText = state.score;
+                    // 加分動畫
+                    scoreEl.classList.remove('text-red-500', 'bg-red-50');
+                    scoreEl.classList.add('text-white', 'bg-green-500', 'scale-110');
+                    setTimeout(() => {
+                        scoreEl.classList.remove('text-white', 'bg-green-500', 'scale-110');
+                        scoreEl.classList.add('text-red-500', 'bg-red-50');
+                    }, 500);
+                }
+
+                // 展開完整解析
+                const expBox = document.getElementById('explanation-box');
+                document.getElementById('explanation-text').innerText = qData.exp;
+                expBox.classList.remove('hidden');
+                void expBox.offsetWidth; // 重新觸發動畫
+                expBox.classList.add('fade-in');
+
+                // 顯示超大下一步按鈕
+                const actionBox = document.getElementById('action-container');
+                actionBox.classList.remove('hidden');
+                
+                const actionBtnText = document.getElementById('action-btn-text');
+                if (state.currentIndex === 14) {
+                    actionBtnText.innerText = '查看成績結算';
+                    actionBox.querySelector('i').className = 'fa-solid fa-flag-checkered';
+                } else {
+                    actionBtnText.innerText = '下一題';
+                    actionBox.querySelector('i').className = 'fa-solid fa-circle-arrow-right';
+                }
+                
+                // 自動滾動到底部方便點擊
+                setTimeout(() => {
+                    actionBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, 100);
+            },
+
+            nextQuestion: () => {
+                if (state.currentIndex < 14) {
+                    state.currentIndex++;
+                    app.renderQuestion();
+                } else {
+                    app.showResult();
+                }
+            },
+
+            showResult: () => {
+                app.switchScreen('quiz-screen', 'result-screen');
+                document.getElementById('final-score-display').innerText = `${state.score} / 15`;
+                
+                // 將進度條填滿
+                document.getElementById('progress-bar').style.width = `100%`;
+                
+                const rewardBox = document.getElementById('reward-box');
+                const titleEl = document.getElementById('reward-title');
+                const iconEl = document.getElementById('result-icon');
+                const msgEl = document.getElementById('result-message');
+                const studentInfo = document.getElementById('student-info').value || '同學';
+
+                // 判定：10題(含)以上過關
+                if (state.score >= 10) {
+                    rewardBox.classList.remove('hidden');
+                    let title = "";
+                    if(state.score >= 10 && state.score <= 11) title = "環保見習生";
+                    else if(state.score >= 12 && state.score <= 13) title = "節能小尖兵";
+                    else if(state.score === 14) title = "減碳達人";
+                    else if(state.score === 15) title = "完美環境知識王";
+
+                    titleEl.innerText = title;
+                    iconEl.innerHTML = '<i class="fa-solid fa-medal text-yellow-500 drop-shadow-lg"></i>';
+                    msgEl.innerHTML = `<span class="text-blue-600 font-black">${studentInfo}</span> 太棒了！<br>您成功通過測驗，展現了極佳的環保知識！`;
+                    
+                    // 嚴格依照順序解鎖下一關
+                    const currentLevelIndex = LEVEL_CONFIG.findIndex(l => l.id === state.levelConfig.id);
+                    if (currentLevelIndex < LEVEL_CONFIG.length - 1) {
+                        const nextLevelConfig = LEVEL_CONFIG[currentLevelIndex + 1];
+                        
+                        // 若下一關尚未解鎖，則加入解鎖陣列
+                        if (!state.unlockedLevels.includes(nextLevelConfig.id)) {
+                            state.unlockedLevels.push(nextLevelConfig.id);
+                            msgEl.innerHTML += `<div class="mt-6 p-4 bg-green-100 rounded-2xl border-4 border-green-300 text-green-800 font-black text-2xl animate-pulse flex items-center justify-center gap-3">
+                                <i class="fa-solid fa-unlock text-3xl"></i> 恭喜解鎖：${nextLevelConfig.name}！
+                            </div>`;
+                        }
+                    } else if (currentLevelIndex === LEVEL_CONFIG.length - 1 && state.score === 15) {
+                         msgEl.innerHTML += `<div class="mt-6 text-red-600 font-black text-3xl animate-bounce">🏆 您已完全稱霸所有題庫！ 🏆</div>`;
+                    }
+
+                    // 呼叫滿天星特效
+                    app.fireConfetti();
+                } else {
+                    rewardBox.classList.add('hidden');
+                    iconEl.innerHTML = '<i class="fa-solid fa-face-sad-tear text-blue-400 drop-shadow-lg"></i>';
+                    msgEl.innerHTML = `<span class="text-blue-600 font-black">${studentInfo}</span> 再接再厲！<br>分數未達 10 題門檻，複習一下剛剛的錯誤，下次一定能過關！`;
+                }
+            },
+
+            returnToMenu: () => {
+                // 重新渲染主選單，套用新的解鎖狀態
+                app.renderMenuButtons();
+                app.switchScreen('result-screen', 'menu-screen');
+                // 回到頂部
+                window.scrollTo(0, 0);
+            },
+
+            switchScreen: (hideId, showId) => {
+                document.getElementById(hideId).classList.add('hidden');
+                document.getElementById(hideId).classList.remove('flex');
+                
+                const showEl = document.getElementById(showId);
+                showEl.classList.remove('hidden');
+                showEl.classList.add('flex');
+                
+                showEl.classList.remove('fade-in');
+                void showEl.offsetWidth; 
+                showEl.classList.add('fade-in');
+            },
+
+            fireConfetti: () => {
+                const canvas = document.getElementById('confetti-canvas');
+                const ctx = canvas.getContext('2d');
+                let particles = [];
+                const colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+                // 產生 150 個彩紙碎片
+                for (let i = 0; i < 150; i++) {
+                    particles.push({
+                        x: canvas.width / 2,
+                        y: canvas.height / 2 + 100, // 從畫面中央偏下爆發
+                        r: Math.random() * 8 + 4, // 較大的碎片
+                        dx: Math.random() * 16 - 8,
+                        dy: Math.random() * -16 - 8, // 較強的向上推力
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        tilt: Math.random() * 10,
+                        tiltAngle: 0,
+                        tiltAngleInc: (Math.random() * 0.1) + 0.05
+                    });
+                }
+
+                let animationId;
+                let frame = 0;
+
+                function draw() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    let activeParticles = 0;
+
+                    for (let i = 0; i < particles.length; i++) {
+                        let p = particles[i];
+                        if(p.y < canvas.height + 20) activeParticles++;
+                        
+                        p.tiltAngle += p.tiltAngleInc;
+                        // 旋轉與飄落物理模擬
+                        p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
+                        p.x += Math.sin(p.tiltAngle) * 3;
+                        p.dy += 0.2; // 重力
+                        p.x += p.dx;
+                        p.y += p.dy;
+
+                        ctx.beginPath();
+                        ctx.lineWidth = p.r;
+                        ctx.strokeStyle = p.color;
+                        ctx.moveTo(p.x + p.tilt + p.r, p.y);
+                        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                        ctx.stroke();
+                    }
+
+                    // 動畫持續約 300 影格 (約5秒) 或直到碎片都掉出畫面
+                    if (activeParticles > 0 && frame < 300) {
+                        frame++;
+                        animationId = requestAnimationFrame(draw);
+                    } else {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        cancelAnimationFrame(animationId);
+                    }
+                }
+                draw();
+            }
+        };
+
+        // 綁定 Window Load 事件以啟動 APP，使用箭頭函式避免 this 指向錯誤
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
